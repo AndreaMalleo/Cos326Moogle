@@ -60,6 +60,15 @@ let print s =
 let rec crawl (n:int) (frontier: LinkSet.set)
     (visited : LinkSet.set) (d:WordDict.dict) : WordDict.dict = 
   WordDict.empty
+    if n > 0 then
+      match Set.choose frontier with (*check syntax*)
+      | None -> return d
+      | link ->
+	 (*visit link - add to visited, update/create entry in d for all words on page*)
+	 (*add all attached links (that are not visited) to frontier*)
+	 (*call crawl on n-1 *)
+    else
+      return d
 ;;
 
 let crawler () = 
