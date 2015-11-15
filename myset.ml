@@ -241,19 +241,40 @@ struct
       let gen_key_gt  = C.gen_gt
       let gen_key_lt  = C.gen_lt
       let gen_key_between  = C.gen_between
-      let gen_value () = unit();
-      let gen_pair ()= (gen_key_random(),C.gen_value())
+      let gen_value () = ()
+      let gen_pair () = (gen_key_random(), gen_value())
   end)
 
+  open Order
   type elt = D.key
   type set = D.dict
-  let empty = ???
+  let empty = D.empty
 
-  (* implement the rest of the functions in the signature! *)
-
+  let is_empty s = (D.choose s = None)
+  let insert k s = D.insert s k ()
+  let singleton k = D.insert empty k ()
+  let remove k s = D.remove s k
+  let member = D.member
+  let choose s =
+    match D.choose s with
+    | Some(k,v,d) -> Some(k,d)
+    | None -> None
+		
+  let fold f x s = D.fold (fun k v x -> f k x) x s 
+  let union s1 s2 = fold insert s1 s2
+  let rec intersect s1 s2 =
+    match D.choose s1, D.choose s2 with
+    | None, _ -> empty
+    | _, None -> empty
+    | Some(s1_hd, _,  s1'), Some(s2_hd, _, s2') ->
+       (match C.compare s1_hd s2_hd with
+	| Eq -> D.insert (intersect s1' s2') s1_hd ()
+	| Less -> intersect s1' s2
+	| Greater -> intersect s1 s2')
+    
   let string_of_elt = D.string_of_key
   let string_of_set s = D.string_of_dict s
-
+					 
   (****************************************************************)
   (* Tests for our DictSet functor                                *)
   (* Use the tests from the ListSet functor to see how you should *)
