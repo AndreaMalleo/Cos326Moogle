@@ -226,11 +226,23 @@ end
 (* DictSet: a functor that creates a SET by calling our           *)
 (* Dict.Make functor                                              *)
 (******************************************************************)
-(*
+
 module DictSet(C : COMPARABLE) : (SET with type elt = C.t) = 
 struct
   module D = Dict.Make(struct
-      ??? fill this in!
+      type key = C.t 
+      type value = unit 
+      let compare = C.compare
+      let string_of_key = C.string_of_t
+      let string_of_value () = "()"
+
+      let gen_key  = C.gen
+      let gen_key_random  = C.gen_random
+      let gen_key_gt  = C.gen_gt
+      let gen_key_lt  = C.gen_lt
+      let gen_key_between  = C.gen_between
+      let gen_value () = unit();
+      let gen_pair ()= (gen_key_random(),C.gen_value())
   end)
 
   type elt = D.key
@@ -253,7 +265,7 @@ struct
   let run_tests () = 
     ()
 end
-*)
+
 
 
 
