@@ -57,18 +57,55 @@ let print s =
  *
  * Keep crawling until we've
  * reached the maximum number of links (n) or the frontier is empty. *)
+let updateDict (l:link)(d:WordDict.dict): WordDict.dict =
+  match get_page l with
+  | Some(p) ->
+     let rec update (words: string list)
+		    (dict:WordDict.dict): WordDict.dict =
+       match words with
+       | [] -> dict
+       | hd::tl -> let linkList' =
+		     match WordDict.lookup dict hd with
+		     | Some(linkList) -> LinkSet.insert l linkList
+		     | None -> LinkSet.singleton l
+		   in
+		   update tl (WordDict.insert dict hd linkList')
+     in
+       update p.words d
+  | None -> d
+
+let updateFrontier (l:link)(frontier: LinkSet.set)
+		   (v: LinkSet.set) : LinkSet.set =
+  match get_page l with
+  | Some(p) ->
+     let rec update (links: link list)
+		    (front: LinkSet.set) : LinkSet.set =
+       match links with
+       | [] -> front
+       | hd::tl -> let front' =
+		     if LinkSet.member v hd || LinkSet.member front hd then
+		       front
+		     else
+		       LinkSet.insert hd front
+		   in
+		   update tl front'
+     in
+     update p.links frontier
+  | None -> frontier
+;;
+
 let rec crawl (n:int) (frontier: LinkSet.set)
     (visited : LinkSet.set) (d:WordDict.dict) : WordDict.dict = 
-  WordDict.empty
-    if n > 0 then
-      match Set.choose frontier with (*check syntax*)
-      | None -> return d
-      | link ->
-	 (*visit link - add to visited, update/create entry in d for all words on page*)
-	 (*add all attached links (that are not visited) to frontier*)
-	 (*call crawl on n-1 *)
-    else
-      return d
+  if n > 0 then
+    match LinkSet.choose frontier with
+    | None -> d
+    | Some(link, frontier') ->
+       let visited' = LinkSet.insert link visited in
+       let d' = updateDict link d in
+       let frontier'' = updateFrontier link frontier' visited' in
+       crawl (n-1) frontier'' visited' d'
+  else
+    d
 ;;
 
 let crawler () = 
