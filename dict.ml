@@ -274,7 +274,6 @@ end
 (* BTDict: a functor that implements our DICT signature           *)
 (* using a balanced tree (2-3 trees)                              *)
 (******************************************************************)
-(*
 module BTDict(D:DICT_ARG) : (DICT with type key = D.key
 with type value = D.value) =
 struct
@@ -353,7 +352,18 @@ struct
   (* TODO:
    * Implement fold. Read the specification in the DICT signature above. *)
   let rec fold (f: key -> value -> 'a -> 'a) (u: 'a) (d: dict) : 'a =
-    raise TODO
+    match d with
+    | Leaf -> u
+    | Two(d1, (k, v), d2) ->
+       let uRight = fold f u d2 in
+       let uMiddle = f k v uRight in
+       fold f uMiddle d1
+    | Three (d1, (k1, v1), d2, (k2, v2), d3) ->
+       let uRight = fold f u d3 in
+       let uMiddleRight = f k2 v2 uRight in
+       let uMiddle = fold f uMiddleRight d2 in
+       let uMiddleLeft = f k1 v1 uMiddle in
+       fold f uMiddleLeft d1
 
   (* TODO:
    * Implement these to-string functions *)
@@ -783,8 +793,6 @@ struct
     ()
 
 end
-*)
-
 
 
 (******************************************************************)
