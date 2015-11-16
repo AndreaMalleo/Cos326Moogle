@@ -274,7 +274,7 @@ end
 (* BTDict: a functor that implements our DICT signature           *)
 (* using a balanced tree (2-3 trees)                              *)
 (******************************************************************)
-(*
+
 module BTDict(D:DICT_ARG) : (DICT with type key = D.key
 with type value = D.value) =
 struct
@@ -393,7 +393,9 @@ struct
    * result of performing the upward phase on w. *)
   let insert_upward_two (w: pair) (w_left: dict) (w_right: dict) 
       (x: pair) (x_other: dict) : kicked = 
-    raise TODO
+     match D.compare w.key x.key with
+     |Less|Eq ->  Done(Three(w_left,w, w_right, x, x_other))
+     |Greater -> Done(Three(w_left,X,w_right,w,x_other))
 
   (* Upward phase for w where its parent is a Three node whose (key,value) is x.
    * One of x's children is w, and of the two remaining children, 
@@ -409,7 +411,11 @@ struct
    * new tree as a result of performing the upward phase on w. *)
   let insert_upward_three (w: pair) (w_left: dict) (w_right: dict)
       (x: pair) (y: pair) (other_left: dict) (other_right: dict) : kicked =
-    raise TODO
+      match D.compare w.key x.key with
+      |Less|Eq -> Up(Two(w_left, w, w_right), x, Two(other_left,y,other_right))
+      |Greater -> match D.compare w.key y.key with 
+	|Less|Eq -> Up(Two(other_left, x, w_left), w, Two(w_right, y, other_right))
+	|Greater-> Up(Two(other_left, x, other_right), y, Two(w_left,w,w_right))
 
   (* Downward phase for inserting (k,v) into our dictionary d. 
    * The downward phase returns a "kicked" up configuration, where
@@ -783,7 +789,7 @@ struct
     ()
 
 end
-*)
+
 
 
 
