@@ -368,9 +368,14 @@ struct
 
   (* TODO:
    * Implement these to-string functions *)
-  let string_of_key = raise TODO
-  let string_of_value = raise TODO
-  let string_of_dict (d: dict) : string = raise TODO
+  let string_of_key = D.string_of_key
+  let string_of_value = D.string_of_value
+  let string_of_dict (d: dict) : string =
+    fold (fun k v string ->
+	  string 
+	  ^ "(" ^ string_of_key k ^ " -> "
+	  ^ string_of_value v ^ ")\n")
+	 "" d
       
   (* Debugging function. This will print out the tree in text format.
    * Use this function to see the actual structure of your 2-3 tree. *
@@ -402,11 +407,13 @@ struct
    * One of x's children is w, and the other child is x_other. This function
    * should return a kicked-up configuration containing the new tree as a
    * result of performing the upward phase on w. *)
+
   let insert_upward_two
  (w: pair) (w_left: dict) (w_right: dict) (x: pair) (x_other: dict) : kicked = 
      match  D.compare (fst w) (fst x) with
      |Less|Eq ->  Done(Three(w_left,w, w_right, x, x_other))
      |Greater -> Done(Three(w_left,x,w_right,w,x_other))
+
 
   (* Upward phase for w where its parent is a Three node whose (key,value) is x.
    * One of x's children is w, and of the two remaining children, 
@@ -656,20 +663,46 @@ struct
    * in our dictionary and returns it as an option, or return None
    * if the key is not in our dictionary. *)
   let rec lookup (d: dict) (k: key) : value option =
-    raise TODO
+    match d with
+    | Leaf -> None
+    | Two(d1, (k1, v1), d2) ->
+       (match D.compare k k1 with
+	| Eq -> Some v1
+	| Less -> lookup d1 k
+	| Greater -> lookup d2 k) 
+    | Three(d1, (k1, v1), d2, (k2, v2), d3) ->
+       (match D.compare k k1 with
+	| Eq -> Some v1
+	| Less -> lookup d1 k
+	| Greater ->
+	   (match D.compare k k2 with
+	    | Eq -> Some v1
+	    | Less -> lookup d2 k
+	    | Greater -> lookup d3 k))
 
   (* TODO:
    * Write a function to test if a given key is in our dictionary *)
   let member (d: dict) (k: key) : bool =
-    raise TODO
+    match lookup d k with
+    | None -> false
+    | Some _ -> true
 
   (* TODO:
    * Write a function that removes any (key,value) pair from our 
    * dictionary (your choice on which one to remove), and returns
    * as an option this (key,value) pair along with the new dictionary. 
    * If our dictionary is empty, this should return None. *)
-  let choose (d: dict) : (key * value * dict) option =
-    raise TODO
+  let rec choose (d: dict) : (key * value * dict) option =
+    match d with
+    | Leaf -> None
+    | Two(d1, (k, v), d2) ->
+       (match d2 with
+	| Leaf -> Some (k, v, remove d k)
+	| Two _ | Three _ -> choose d2)
+    | Three(d1, (k1, v1), d2, (k2, v2), d3) ->
+       (match d3 with
+	| Leaf -> Some (k2, v2, remove d k2) 
+	| Two _ | Three _ -> choose d3)
 
   (* TODO:
    * Write a function that when given a 2-3 tree (represented by our
@@ -681,8 +714,26 @@ struct
    * ANSWER: 
    *    _______________
    *)
-  let rec balanced (d: dict) : bool =
-    raise TODO
+  let balanced (d: dict) : bool =
+    let rec helper (currD: dict): int option =
+      match currD with
+      | Leaf -> Some(1)
+      | Two(d1, n, d2) ->
+	 (match helper d1, helper d2 with
+	  | Some(h1), Some(h2) ->
+	    if h1 = h2 then Some(h1 + 1)
+	    else None
+	  | _, _ -> None)
+      | Three(d1, n1, d2, n2, d3) ->
+	 (match helper d1, helper d2, helper d3 with
+	  | Some(h1), Some(h2), Some(h3) ->
+	     if (h1 = h2) && (h2 = h3) then Some(h1 + 1)
+	     else None
+	  | _, _, _ -> None)
+    in
+    match helper d with
+    | Some _ -> true
+    | None -> false
 
 
   (********************************************************************)
@@ -715,13 +766,13 @@ struct
     else 
       (D.gen_key_random(), D.gen_value()) :: (generate_random_list (size - 1))
 
-(*
+
   let test_balance () =
     let d1 = Leaf in
     assert(balanced d1) ;
 
     let d2 = Two(Leaf,D.gen_pair(),Leaf) in
-    assert(balanced d2) ;
+     assert(balanced d2) ;
 
     let d3 = Three(Leaf,D.gen_pair(),Leaf,D.gen_pair(),Leaf) in
     assert(balanced d3) ;
@@ -755,7 +806,7 @@ struct
                    D.gen_pair(),Leaf,D.gen_pair(),Two(Leaf,D.gen_pair(),Leaf))
     in
     assert(not (balanced d7)) ;
-    () *)
+    () 
 
   let test_insert_into_nothing () =
     let pairs1 = generate_pair_list 26 in
@@ -833,20 +884,21 @@ struct
     assert(balanced r5) ;
     () *)
 
+
 let run_tests () = 
     test_insert_nothing();
-    test_insert_into_nothing()
-end 
+    test_insert_into_nothing();
+    test_balance(); ()
+
   (*  test_insert_in_order();
     test_insert_reverse_order();
-    test_insert_random_order();*)
-(*    test_balance() ; 
+    test_insert_random_order();
     test_remove_nothing() ;
     test_remove_from_nothing() ;
     test_remove_in_order() ;
     test_remove_reverse_order() ;
     test_remove_random_order() ; *)
-  
+  end 
 
 (******************************************************************)
 (* Run our tests.                                                 *)
