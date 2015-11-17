@@ -203,7 +203,6 @@ struct
 
   let test_is_empty () =
     ()
-
   let test_singleton () =
     ()
 
@@ -283,7 +282,79 @@ struct
   (****************************************************************)
 
   (* add your test functions to run_tests *)
+
+  let insert_list (d: set) (lst: elt list) : set = 
+    List.fold_left (fun r k -> insert k r) d lst
+		   
+  let rec generate_random_list (size: int) : elt list =
+    if size <= 0 then []
+    else (C.gen_random()) :: (generate_random_list (size - 1))
+
+  let test_choose () =
+    assert (choose empty = None);
+
+    let elt = C.gen_random() in
+    assert(choose (singleton elt) = Some(elt, empty));
+
+    (*note reverse order for not BT dicts...*)
+    
+    let elt = C.gen_random() in
+    let elt_gt = C.gen_gt elt () in
+    let d = insert elt_gt (singleton elt) in
+    assert (choose d = Some(elt, singleton elt_gt));
+
+    let elt = C.gen_random() in
+    let elt_gt = C.gen_gt elt () in
+    let elt_lt = C.gen_lt elt () in
+    let d = insert elt (insert elt_lt (singleton elt_gt)) in
+    (assert (choose d = Some(elt_lt, insert elt_gt (singleton elt)));
+     (assert((match choose d with
+	      | Some(_, d1) -> choose d1
+	      | None -> raise TODO (*change this ...?*))
+	     = Some(elt, singleton elt_gt)));
+     (assert((match choose d with
+	      | Some(_, d1) ->
+		 (match choose d1 with
+		  | Some(_, d2) -> choose d2
+		 | None -> raise TODO (*change this..?*))
+	      | None -> raise TODO (*change this ...?*))
+	     = Some(elt_gt, empty)));
+    );    
+    ()
+
+  (*what should we do here..*)    
+  let test_fold () =
+    let print_func = (fun elt s -> s ^ (C.string_of_t elt)) in
+    let elt = C.gen_random () in
+    let elt_lt = C.gen_lt elt () in
+    let elt_gt = C.gen_gt elt () in
+    let d = insert elt (insert elt_lt (singleton elt_gt)) in
+    (assert(fold print_func "" empty = "");
+     assert(fold print_func "" d =
+	   (C.string_of_t elt_lt) ^ (C.string_of_t elt) ^ (C.string_of_t elt_gt)));
+    ()
+      x
+  let test_is_empty () =
+    assert(is_empty empty = true);
+    assert(is_empty (singleton (C.gen_random())) = false);
+    assert(is_empty (insert (C.gen_random()) (singleton (C.gen_random()))) = false);
+    ()
+      
+  let test_singleton () =
+    let elt = C.gen_random() in
+    assert(singleton elt = insert elt empty);
+    ()
+      
   let run_tests () = 
+    (*test_insert () ;
+    test_remove () ;
+    test_union () ;
+    test_intersect () ;
+    test_member () ;*)
+    test_choose () ;
+    test_fold () ;
+    test_is_empty () ;
+    test_singleton () ;
     ()
 end
 
@@ -302,10 +373,10 @@ IntListSet.run_tests();;
  * 
  * Uncomment out the lines below when you are ready to test your
  * 2-3 dict set implementation *)
-(*
+
 module IntDictSet = DictSet(IntComparable) ;;
 IntDictSet.run_tests();;
-*)
+
 
 
 (******************************************************************)
@@ -315,6 +386,6 @@ IntDictSet.run_tests();;
 module Make(C : COMPARABLE) : (SET with type elt = C.t) = 
   (* Change this line to use our dictionary implementation when your are 
    * finished. *)
-  ListSet (C)
-  (* DictSet (C) *)
+  (*ListSet (C)*)
+  DictSet (C)
 
