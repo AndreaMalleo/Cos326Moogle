@@ -712,7 +712,15 @@ struct
 
   (* How are you testing that you tree is balanced? 
    * ANSWER: 
-   *    _______________
+   *    We are testing that the tree is balance by recursively calculating
+        the height of the subtrees of a node (the 2 sub trees for two node
+        and the 3 sub trees for three node) and checking that they are all
+        equal. If they are not equal we just return None for the height which 
+        signals to the outer function that it is not balanced. If the heights
+        are the same then we return one plus the height as the height of the 
+        current node (which may be use by its parents' helper call to compare
+        the heights of its childern, or just return to the outer function where
+        any height value signals that the three is balanced)
    *)
   let balanced (d: dict) : bool =
     let rec helper (currD: dict): int option =

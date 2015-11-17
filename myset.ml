@@ -327,7 +327,6 @@ struct
 	     = Some(elt_gt, empty))));
     ()
 
-  (*what should we do here..*)    
   let test_fold () =
     let print_func = (fun elt s -> s ^ (C.string_of_t elt)) in
     let elt = C.gen_random () in
@@ -375,27 +374,36 @@ struct
     List.iter(fun k-> (assert(member s1 k && member s2 k = member s k))) (elts1@elts2)
       ; ()
     
-(*let test_member () =
-  let mem_help eltList it ans =
-    let s1 = insert_list empty eltList in
-    assert((member s1 it) = ans ) in
+  let test_member () =
+    assert(member empty (C.gen_random ()) = false);
 
-   mem_help ["abacadabra";"shazaam";"boo"] "hocus pocus" false;
-   mem_help ["happy"; "birthday"; "to";"you"] "birthday" true;
-   mem_help ["aaaa"] "a" false;
-   mem_help ["out";"side" ] "outside" false;
-   mem_help ["outside"] "out" false
-*)
-    let run_tests () = 
+    let elt = C.gen_random () in
+    let elt_lt = C.gen_lt elt () in
+    let d = singleton elt in
+    (assert(member d elt = true);
+     assert(member d elt_lt = false));
+
+    let elt = C.gen_random () in
+    let elt_lt = C.gen_lt elt () in
+    let elt_gt = C.gen_gt elt () in
+    let d = insert elt (insert elt empty) in
+    (assert(member d elt = true);
+     assert(member d elt_lt = true);
+     assert(member d elt_gt = false));
+    ()
+    
+      
+  let run_tests () = 
     test_insert () ;
     test_remove () ;
     test_union () ;
     test_intersect () ;
-   (* test_member ();*) 
+    test_member (); 
     test_choose () ;
     test_fold () ;
     test_is_empty () ;
     test_singleton () ; ()
+
 end
 
 (******************************************************************)
