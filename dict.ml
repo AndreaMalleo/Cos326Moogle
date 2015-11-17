@@ -322,7 +322,7 @@ struct
   (* FOR INSERTION:
    * A kicked configuration returned by going downwards on insertion.
    * We can only kick up Two nodes, hence Up takes a dict * pair * dict *)
-  type kicked =
+  type kicked = 
     | Up of dict * pair * dict
     | Done of dict
 
@@ -350,7 +350,7 @@ struct
   (* How do we represent an empty dictionary with 2-3 trees? *)
   let empty : dict = Leaf
 
-  (* TODO:
+  (* 
    * Implement fold. Read the specification in the DICT signature above. *)
   let rec fold (f: key -> value -> 'a -> 'a) (u: 'a) (d: dict) : 'a =
     match d with
@@ -412,7 +412,7 @@ struct
  (w: pair) (w_left: dict) (w_right: dict) (x: pair) (x_other: dict) : kicked = 
      match  D.compare (fst w) (fst x) with
      |Less|Eq ->  Done(Three(w_left,w, w_right, x, x_other))
-     |Greater -> Done(Three(w_left,x,w_right,w,x_other))
+     |Greater -> Done(Three(x_other,x,w_left,w,w_right))
 
 
   (* Upward phase for w where its parent is a Three node whose (key,value) is x.
@@ -526,9 +526,9 @@ struct
       (left: dict) (right: dict) (dir: direction2) : hole =
     match dir,n,left,right with
       | Left2,x,l,Two(m,y,r) -> Hole(rem,Three(l,x,m,y,r))
-      | Right2,y,Two(l,x,m),r -> raise TODO
-      | Left2,x,a,Three(b,y,c,z,d) -> raise TODO
-      | Right2,z,Three(a,x,b,y,c),d -> raise TODO
+      | Right2,y,Two(l,x,m),r -> Hole(rem,Three(l,x,m,y,r))
+      | Left2,x,a,Three(b,y,c,z,d) -> Absorbed(rem, Two(Two(a,x,b),y,Two(c,z,d)))
+      | Right2,z,Three(a,x,b,y,c),d -> Absorbed(rem, Two(Two(a,x,b),y,Two(c,z,d)))
       | Left2,_,_,_ | Right2,_,_,_ -> Absorbed(rem,Two(Leaf,n,Leaf))
 
   (* Upward phase for removal where the parent of the hole is a Three node.
@@ -540,13 +540,13 @@ struct
       (left: dict) (middle: dict) (right: dict) (dir: direction3) : hole =
     match dir,n1,n2,left,middle,right with
       | Left3,x,z,a,Two(b,y,c),d -> Absorbed(rem,Two(Three(a,x,b,y,c),z,d))
-      | Mid3,y,z,Two(a,x,b),c,d -> raise TODO
-      | Mid3,x,y,a,b,Two(c,z,d) -> raise TODO
-      | Right3,x,z,a,Two(b,y,c),d -> raise TODO
-      | Left3,w,z,a,Three(b,x,c,y,d),e -> raise TODO
-      | Mid3,y,z,Three(a,w,b,x,c),d,e -> raise TODO
-      | Mid3,w,x,a,b,Three(c,y,d,z,e) -> raise TODO
-      | Right3,w,z,a,Three(b,x,c,y,d),e -> raise TODO
+      | Mid3,y,z,Two(a,x,b),c,d -> Absorbed(rem,Two(Three(a,x,b,y,c),z,d))
+      | Mid3,x,y,a,b,Two(c,z,d) -> Absorbed(rem,Two(a,x,Three(b,y,c,z,d)))
+      | Right3,x,z,a,Two(b,y,c),d -> Absorbed(rem,Two(a,x,Three(b,y,c,z,d)))
+      | Left3,w,z,a,Three(b,x,c,y,d),e -> Absorbed(rem, Three(Two(a,w,b),x,Two(c,y,d),z,e)) 
+      | Mid3,y,z,Three(a,w,b,x,c),d,e -> Absorbed(rem, Three(Two(a,w,b),x,Two(c,y,d),z,e))
+      | Mid3,w,x,a,b,Three(c,y,d,z,e) -> Absorbed(rem,Three(a,w,Two(b,x,c),y,Two(d,z,e)))
+      | Right3,w,z,a,Three(b,x,c,y,d),e -> Absorbed(rem,Three(a,w,Two(b,x,c),y,Two(d,z,e)))
       | Left3,_,_,_,_,_ | Mid3,_,_,_,_,_ | Right3,_,_,_,_,_ ->
         Absorbed(rem,Three(Leaf,n1,Leaf,n2,Leaf))
 
@@ -809,34 +809,33 @@ struct
     () 
 
   let test_insert_into_nothing () =
-    let pairs1 = generate_pair_list 26 in
+    let pairs1 = generate_pair_list 30 in
     let d1 = insert_list empty pairs1 in
-    List.iter (fun (k,v) -> assert(lookup d1 k = Some v)) pairs1;()
-   (* assert(balanced d1);*)
+    List.iter (fun k -> assert(member d1 (fst k) = true)) pairs1;
+    assert(balanced d1);()
+
+   let test_insert () =
+     let pairs1 = generate_pair_list 30 in
+     let d1 = insert_list empty pairs1 in
+     let pairs2 = generate_pair_list 26 in
+     let d2 = insert_list d1 pairs2 in
+     List.iter (fun k -> assert(member d2 (fst k) = true)) (pairs1@pairs2);
+     assert(balanced d2); ()
 
   let test_insert_nothing () =
     let pairs1 = generate_pair_list 26 in
     let d1 = insert_list empty pairs1 in
     let emptylist = [] in
     let d2 = insert_list d1 emptylist in 
-    List.iter (fun (k,v) -> assert(lookup d2 k = Some v)) pairs1; ()
+    List.iter (fun k -> assert(member d2 (fst k) = true)) pairs1; 
+    assert(balanced d1); ()
 
-   (* assert(balanced d1) *)
-
- (* let test_insert_in_order() = 
-    let pairs1 = generate_pair_lists 26 in
-    let d1 = insert_list empty pairs1 in
-    List.iter*)
-      
-
-(*
-  let test_remove_nothing () =
+ let test_insert_reverse_order() = 
     let pairs1 = generate_pair_list 26 in
-    let d1 = insert_list empty pairs1 in
-    let r2 = remove d1 (D.gen_key_lt (D.gen_key()) ()) in
-    List.iter (fun (k,v) -> assert(lookup r2 k = Some v)) pairs1 ;
-    assert(balanced r2) ;
-    ()
+    let d1 = insert_list_reversed empty pairs1 in
+    List.iter (fun k -> assert(member d1 (fst k) = true)) pairs1; 
+    assert(balanced d1); ()
+     
 
   let test_remove_from_nothing () =
     let d1 = empty in
@@ -861,20 +860,25 @@ struct
     ()
 
   let test_remove_reverse_order () =
-    let pairs1 = generate_pair_list 26 in
+    let pairs1 = generate_pair_list 5 in
     let d1 = insert_list_reversed empty pairs1 in
+    List.iter (fun k -> Printf.printf "%s" (string_of_key (fst k))) pairs1;
+    Printf.printf "%s" (string_of_tree d1);
     List.iter 
       (fun (k,v) -> 
         let r = remove d1 k in
         let _ = List.iter 
           (fun (k2,v2) ->
             if k = k2 then assert(lookup r k2 = None)
-            else assert(lookup r k2 = Some v2)
+            else ( Printf.printf "%s" (string_of_tree r);
+		   Printf.printf "%s" (string_of_key k);
+		   Printf.printf "%s" (string_of_key k2);
+	      assert((lookup r k2) = Some v2))
           ) pairs1 in
         assert(balanced r)
       ) pairs1 ;
     ()
-
+(*lookup r k2 = Some v2*)
   let test_remove_random_order () =
     let pairs5 = generate_random_list 100 in
     let d5 = insert_list empty pairs5 in
@@ -882,22 +886,29 @@ struct
     List.iter (fun (k,_) -> assert(not (member r5 k))) pairs5 ;
     assert(r5 = empty) ;
     assert(balanced r5) ;
-    () *)
+    () 
 
+
+  let test_remove_nothing () =
+    let pairs1 = generate_pair_list 26 in
+    let d1 = insert_list empty pairs1 in
+    let r2 = remove d1 (D.gen_key_lt (D.gen_key()) ()) in
+    List.iter (fun (k,v) -> assert(lookup r2 k = Some v)) pairs1 ;
+    assert(balanced r2) ;
+    ()
 
 let run_tests () = 
-    test_insert_nothing();
+    test_insert_nothing(); 
     test_insert_into_nothing();
-    test_balance(); ()
-
-  (*  test_insert_in_order();
+    test_insert() ;
     test_insert_reverse_order();
-    test_insert_random_order();
-    test_remove_nothing() ;
+    test_balance(); 
+    test_remove_random_order() ;
+   test_remove_reverse_order() ; 
     test_remove_from_nothing() ;
     test_remove_in_order() ;
-    test_remove_reverse_order() ;
-    test_remove_random_order() ; *)
+ 
+    test_remove_nothing() ; ()
   end 
 
 (******************************************************************)
