@@ -294,11 +294,12 @@ struct
     let elts = generate_random_list 100 in
     let s1 = insert_list empty elts in
     List.iter (fun k -> assert(member s1 k)) elts ;
-
+    ()
+      
   let test_choose () =
     assert (choose empty = None);
 
-    let elt = C.gen_random() in
+    let elt = C.gen_random () in
     assert(choose (singleton elt) = Some(elt, empty));
 
     (*note reverse order for not BT dicts...*)
@@ -312,7 +313,7 @@ struct
     let elt_gt = C.gen_gt elt () in
     let elt_lt = C.gen_lt elt () in
     let d = insert elt (insert elt_lt (singleton elt_gt)) in
-    (assert (choose d = Some(elt_lt, insert elt_gt (singleton elt)));
+    (assert(choose d = Some(elt_lt, insert elt_gt (singleton elt)));
      (assert((match choose d with
 	      | Some(_, d1) -> choose d1
 	      | None -> raise TODO (*change this ...?*))
@@ -323,8 +324,7 @@ struct
 		  | Some(_, d2) -> choose d2
 		 | None -> raise TODO (*change this..?*))
 	      | None -> raise TODO (*change this ...?*))
-	     = Some(elt_gt, empty)));
-    );    
+	     = Some(elt_gt, empty))));
     ()
 
   (*what should we do here..*)    
