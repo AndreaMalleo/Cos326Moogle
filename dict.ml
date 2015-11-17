@@ -274,10 +274,7 @@ end
 (* BTDict: a functor that implements our DICT signature           *)
 (* using a balanced tree (2-3 trees)                              *)
 (******************************************************************)
-<<<<<<< HEAD
 
-=======
->>>>>>> 95e3eda3698d309d0b51c42f0e3251c5db604eb9
 module BTDict(D:DICT_ARG) : (DICT with type key = D.key
 with type value = D.value) =
 struct
@@ -405,11 +402,11 @@ struct
    * One of x's children is w, and the other child is x_other. This function
    * should return a kicked-up configuration containing the new tree as a
    * result of performing the upward phase on w. *)
-  let insert_upward_two (w: pair) (w_left: dict) (w_right: dict) 
-      (x: pair) (x_other: dict) : kicked = 
-     match D.compare w.key x.key with
+  let insert_upward_two
+ (w: pair) (w_left: dict) (w_right: dict) (x: pair) (x_other: dict) : kicked = 
+     match  D.compare (fst w) (fst x) with
      |Less|Eq ->  Done(Three(w_left,w, w_right, x, x_other))
-     |Greater -> Done(Three(w_left,X,w_right,w,x_other))
+     |Greater -> Done(Three(w_left,x,w_right,w,x_other))
 
   (* Upward phase for w where its parent is a Three node whose (key,value) is x.
    * One of x's children is w, and of the two remaining children, 
@@ -425,9 +422,9 @@ struct
    * new tree as a result of performing the upward phase on w. *)
   let insert_upward_three (w: pair) (w_left: dict) (w_right: dict)
       (x: pair) (y: pair) (other_left: dict) (other_right: dict) : kicked =
-      match D.compare w.key x.key with
+      match D.compare (fst w) (fst x) with
       |Less|Eq -> Up(Two(w_left, w, w_right), x, Two(other_left,y,other_right))
-      |Greater -> match D.compare w.key y.key with 
+      |Greater -> match D.compare (fst w) (fst y) with 
 	|Less|Eq -> Up(Two(other_left, x, w_left), w, Two(w_right, y, other_right))
 	|Greater-> Up(Two(other_left, x, other_right), y, Two(w_left,w,w_right))
 
@@ -465,23 +462,45 @@ struct
    * with the appropriate arguments. *)
   let rec insert_downward (d: dict) (k: key) (v: value) : kicked =
     match d with
-      | Leaf -> raise TODO (* base case! see handout *)
-      | Two(left,n,right) -> raise TODO (* mutual recursion *)
-      | Three(left,n1,middle,n2,right) -> raise TODO (* mutual recursion *)
+      | Leaf -> Up(Leaf, (k,v), Leaf) (* base case! see handout *)
+      | Two(left,n,right) -> insert_downward_two (k,v) n left right        
+      | Three(left,n1,middle,n2,right) -> insert_downward_three (k, v) n1 n2 left middle right 
 
   (* Downward phase on a Two node. (k,v) is the (key,value) we are inserting,
    * (k1,v1) is the (key,value) of the current Two node, and left and right
    * are the two subtrees of the current Two node. *)
   and insert_downward_two ((k,v): pair) ((k1,v1): pair) 
       (left: dict) (right: dict) : kicked = 
-    raise TODO
+     match D.compare k k1 with
+     |Less|Eq -> ( let in1 = insert_downward left k v in
+       match in1 with
+       |Up(l,n,r) ->  insert_upward_two n l r (k1,v1) right
+       |Done d -> Done(Two(d, (k1,v1), right)))
+     |Greater -> (let in2 = insert_downward right k v in
+        match in2 with 
+	|Up(l,n,r) -> insert_upward_two n l r (k1,v1) left
+	|Done d-> Done(Two(left, (k1,v1), d)))
 
   (* Downward phase on a Three node. (k,v) is the (key,value) we are inserting,
    * (k1,v1) and (k2,v2) are the two (key,value) pairs in our Three node, and
    * left, middle, and right are the three subtrees of our current Three node *)
   and insert_downward_three ((k,v): pair) ((k1,v1): pair) ((k2,v2): pair) 
       (left: dict) (middle: dict) (right: dict) : kicked =
-    raise TODO
+       match D.compare k k1 with
+     |Less|Eq -> (let in1 = insert_downward left k v in 
+		 match in1 with 
+		 |Up(l,n,r) -> insert_upward_three n l r (k1,v1) (k2,v2) middle right
+		 |Done d-> Done(Three(d, (k1,v1), middle, (k2,v2), right)))
+     |Greater -> ( match D.compare k k2 with 
+       |Less|Eq -> ( let in2 = insert_downward middle k v in
+                 match in2 with
+		 |Up(l,n,r)-> insert_upward_three n l r (k1,v1) (k2,v2) left right
+		 |Done d -> Done(Three(left, (k1,v1), d , (k2,v2), right)))
+       |Greater -> ( let in3 = insert_downward right k v in 
+		   match in3 with
+		   |Up(l,n,r)-> insert_upward_three n l r (k1,v1) (k2,v2) left middle
+		   |Done d -> Done(Three(left, (k1,v1), middle, (k2,v2), d))))
+      
 
   (* We insert (k,v) into our dict using insert_downward, which gives us
    * "kicked" up configuration. We return the tree contained in the "kicked"
@@ -738,6 +757,27 @@ struct
     assert(not (balanced d7)) ;
     () *)
 
+  let test_insert_into_nothing () =
+    let pairs1 = generate_pair_list 26 in
+    let d1 = insert_list empty pairs1 in
+    List.iter (fun (k,v) -> assert(lookup d1 k = Some v)) pairs1;()
+   (* assert(balanced d1);*)
+
+  let test_insert_nothing () =
+    let pairs1 = generate_pair_list 26 in
+    let d1 = insert_list empty pairs1 in
+    let emptylist = [] in
+    let d2 = insert_list d1 emptylist in 
+    List.iter (fun (k,v) -> assert(lookup d2 k = Some v)) pairs1; ()
+
+   (* assert(balanced d1) *)
+
+ (* let test_insert_in_order() = 
+    let pairs1 = generate_pair_lists 26 in
+    let d1 = insert_list empty pairs1 in
+    List.iter*)
+      
+
 (*
   let test_remove_nothing () =
     let pairs1 = generate_pair_list 26 in
@@ -793,16 +833,20 @@ struct
     assert(balanced r5) ;
     () *)
 
-  let run_tests () = 
-(*    test_balance() ; *)
-(*    test_remove_nothing() ;
+let run_tests () = 
+    test_insert_nothing();
+    test_insert_into_nothing()
+end 
+  (*  test_insert_in_order();
+    test_insert_reverse_order();
+    test_insert_random_order();*)
+(*    test_balance() ; 
+    test_remove_nothing() ;
     test_remove_from_nothing() ;
     test_remove_in_order() ;
     test_remove_reverse_order() ;
     test_remove_random_order() ; *)
-    ()
-
-end
+  
 
 (******************************************************************)
 (* Run our tests.                                                 *)
@@ -818,10 +862,10 @@ IntStringListDict.run_tests();;
  * 
  * Uncomment out the lines below when you are ready to test your
  * 2-3 tree implementation. *)
-(*
+
 module IntStringBTDict = BTDict(IntStringDictArg) ;;
 IntStringBTDict.run_tests();;
-*)
+
 
 
 
@@ -833,6 +877,6 @@ module Make (D:DICT_ARG) : (DICT with type key = D.key
   with type value = D.value) = 
   (* Change this line to the BTDict implementation when you are
    * done implementing your 2-3 trees. *)
-  AssocListDict(D)
-  (* BTDict(D) *)
+(*AssocListDict(D)*)
+  BTDict(D) 
 
