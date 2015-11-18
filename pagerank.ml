@@ -118,7 +118,6 @@ end
 (*****************************************************************)
 (* Random Walk Ranker                                            *)
 (*****************************************************************)
-(*
 
 module type WALK_PARAMS =
 sig
@@ -133,13 +132,19 @@ end
 module RandomWalkRanker (GA: GRAPH) (NSA: NODE_SCORE with module N = GA.N) 
   (P : WALK_PARAMS) : 
   (RANKER with module G = GA with module NS = NSA) =
+
 struct
   module G = GA
   module NS = NSA
 
-  (* TODO - fill this in*)
+  let length (l: 'a list): int =
+    
+  let get_random_elt (l: 'a list): 'a =
+    
+  let rank (g : G.graph) =
+    
 end
-*)
+
 
 
 (*******************  TESTS BELOW  *******************)
