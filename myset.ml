@@ -268,8 +268,8 @@ struct
     | Some(s1_hd, _,  s1'), Some(s2_hd, _, s2') ->
        (match C.compare s1_hd s2_hd with
 	| Eq -> D.insert (intersect s1' s2') s1_hd ()
-	| Less -> intersect s1 s2'
-	| Greater -> intersect s1' s2)
+	| Less -> intersect s1' s2
+	| Greater -> intersect s1 s2')
     
   let string_of_elt = D.string_of_key
   let string_of_set s = D.string_of_dict s (*is this right??*)
@@ -307,7 +307,7 @@ struct
     let elt = C.gen_random() in
     let elt_gt = C.gen_gt elt () in
     let d = insert elt_gt (singleton elt) in
-    assert (choose d = Some(elt_gt, singleton elt));
+    assert (choose d = Some(elt, singleton elt_gt));
 
     let elt = C.gen_random() in
     let elt_gt = C.gen_gt elt () in
@@ -315,13 +315,13 @@ struct
     let d = insert elt (insert elt_lt (singleton elt_gt)) in
     (match choose d with
      | Some(e1, d1) ->
-	(assert(e1 = elt_gt);
+	(assert(e1 = elt_lt);
 	 (match choose d1 with
 	  | Some(e2, d2) ->
 	     (assert (e2 = elt);
 	      (match choose d2 with
 	       | Some (e3, d3) ->
-		  assert((e3, d3) = (elt_lt, empty))
+		  assert((e3, d3) = (elt_gt, empty))
 	       | None -> assert(not true) (*fail*) ))
 	  | None  -> assert(not true) (*fail*) ))
      | None -> assert(not true) (*fail*));
@@ -336,7 +336,7 @@ struct
     let d = insert elt (insert elt_lt (singleton elt_gt)) in
     (assert(fold print_func "" empty = "");
      assert(fold print_func "" d =
-	   (C.string_of_t elt_gt) ^ (C.string_of_t elt) ^ (C.string_of_t elt_lt)));
+	   (C.string_of_t elt_lt) ^ (C.string_of_t elt) ^ (C.string_of_t elt_gt)));
     ()
       
   let test_is_empty () =
@@ -373,11 +373,7 @@ struct
     let d = singleton elt in
     let d_lt = insert elt_lt d in 
     let d_gt = insert elt_gt d in
-    (Printf.printf "d %s\n" (string_of_set d);
-     Printf.printf "d_lt %s\n" (string_of_set d_lt);
-     Printf.printf "d_gt %s\n" (string_of_set d_gt);
-     Printf.printf "intersect %s\n" (string_of_set (intersect d_lt d_gt));
-      assert(intersect d_lt d_gt = d));
+    assert(intersect d_lt d_gt = d);
 
     let elts1 = generate_random_list 50 in
     let s1 = insert_list empty elts1 in

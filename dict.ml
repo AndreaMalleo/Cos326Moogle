@@ -356,15 +356,15 @@ struct
     match d with
     | Leaf -> u
     | Two(d1, (k, v), d2) ->
-       let uRight = fold f u d2 in
-       let uMiddle = f k v uRight in
-       fold f uMiddle d1
+       let uLeft = fold f u d1 in
+       let uMiddle = f k v uLeft in
+       fold f uMiddle d2
     | Three (d1, (k1, v1), d2, (k2, v2), d3) ->
-       let uRight = fold f u d3 in
-       let uMiddleRight = f k2 v2 uRight in
-       let uMiddle = fold f uMiddleRight d2 in
-       let uMiddleLeft = f k1 v1 uMiddle in
-       fold f uMiddleLeft d1
+       let uLeft = fold f u d1 in
+       let uMiddleLeft = f k1 v1 uLeft in
+       let uMiddle = fold f uMiddleLeft d2 in
+       let uMiddleRight = f k2 v2 uMiddle in
+       fold f uMiddleRight d3
 
   (* TODO:
    * Implement these to-string functions *)
@@ -372,10 +372,8 @@ struct
   let string_of_value = D.string_of_value
   let string_of_dict (d: dict) : string =
     fold (fun k v string ->
-	  string 
-	  ^ "(" ^ string_of_key k ^ " -> "
-	  ^ string_of_value v ^ ")\n")
-	 "" d
+	  string ^ "\n key:" ^ string_of_key k ^
+	    "; value: ("^ string_of_value v ^ ")") "" d
       
   (* Debugging function. This will print out the tree in text format.
    * Use this function to see the actual structure of your 2-3 tree. *
@@ -697,13 +695,13 @@ struct
       match currD with
       | Leaf -> None
       | Two(d1, (k, v), d2) ->
-	 (match d2 with
+	 (match d1 with
 	  | Leaf -> Some (k, v, remove d k)
-	  | Two _ | Three _ -> helper d2)
+	  | Two _ | Three _ -> helper d1)
       | Three(d1, (k1, v1), d2, (k2, v2), d3) ->
-	 (match d3 with
-	  | Leaf -> Some (k2, v2, remove d k2) 
-	  | Two _ | Three _ -> helper d3)
+	 (match d1 with
+	  | Leaf -> Some (k1, v1, remove d k1) 
+	  | Two _ | Three _ -> helper d1)
     in
     helper d
 	   
@@ -926,7 +924,7 @@ struct
     let (k, v) = D.gen_pair () in
     let (k_gt, v') =  ((D.gen_key_gt k ()), D.gen_value ()) in
     let d = insert (insert empty k v) k_gt v' in
-    assert (choose d = Some(k_gt, v', insert empty k v));
+    assert (choose d = Some(k, v, insert empty k_gt v'));
 
     let (k, v) = D.gen_pair () in
     let (k_gt, v') =  ((D.gen_key_gt k ()), D.gen_value ()) in
@@ -934,13 +932,13 @@ struct
     let d = insert (insert (insert empty k v) k_gt v') k_lt v'' in 
     (match choose d with
      | Some(k1, v1, d1) ->
-	(assert((k1, v1) = (k_gt, v'));
+	(assert((k1, v1) = (k_lt, v''));
 	 (match choose d1 with
 	  | Some(k2, v2, d2) ->
 	     (assert ((k2, v2) = (k, v));
 	      (match choose d2 with
 	       | Some (k3, v3, d3) ->
-		  assert((k3, v3, d3) = (k_lt, v'', empty))
+		  assert((k3, v3, d3) = (k_gt, v', empty))
 	       | None -> assert(not true) (*fail*) ))
 	  | None  -> assert(not true) (*fail*) ))
      | None -> assert(not true) (*fail*));
@@ -993,6 +991,6 @@ module Make (D:DICT_ARG) : (DICT with type key = D.key
   with type value = D.value) = 
   (* Change this line to the BTDict implementation when you are
    * done implementing your 2-3 trees. *)
-  (*AssocListDict(D)*)
+  (* AssocListDict(D)*)
   BTDict(D)
 
