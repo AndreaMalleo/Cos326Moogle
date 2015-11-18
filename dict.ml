@@ -407,10 +407,11 @@ struct
    * One of x's children is w, and the other child is x_other. This function
    * should return a kicked-up configuration containing the new tree as a
    * result of performing the upward phase on w. *)
-
+  exception InsertError 
   let insert_upward_two
  (w: pair) (w_left: dict) (w_right: dict) (x: pair) (x_other: dict) : kicked = 
      match  D.compare (fst w) (fst x) with
+     |Eq -> raise InsertError (*Will not be reached- handled in downward *)
      |Less|Eq ->  Done(Three(w_left,w, w_right, x, x_other))
      |Greater -> Done(Three(x_other,x,w_left,w,w_right))
 
@@ -430,9 +431,11 @@ struct
   let insert_upward_three (w: pair) (w_left: dict) (w_right: dict)
       (x: pair) (y: pair) (other_left: dict) (other_right: dict) : kicked =
       match D.compare (fst w) (fst x) with
-      |Less|Eq -> Up(Two(w_left, w, w_right), x, Two(other_left,y,other_right))
+      |Eq -> raise InsertError 
+      |Less -> Up(Two(w_left, w, w_right), x, Two(other_left,y,other_right))
       |Greater -> match D.compare (fst w) (fst y) with 
-	|Less|Eq -> Up(Two(other_left, x, w_left), w, Two(w_right, y, other_right))
+	|Eq -> raise InsertError
+	|Less -> Up(Two(other_left, x, w_left), w, Two(w_right, y, other_right))
 	|Greater-> Up(Two(other_left, x, other_right), y, Two(w_left,w,w_right))
 
   (* Downward phase for inserting (k,v) into our dictionary d. 
@@ -479,7 +482,8 @@ struct
   and insert_downward_two ((k,v): pair) ((k1,v1): pair) 
       (left: dict) (right: dict) : kicked = 
      match D.compare k k1 with
-     |Less|Eq -> ( let in1 = insert_downward left k v in
+     |Eq -> Done(Two(left,(k,v),right))
+     |Less-> ( let in1 = insert_downward left k v in
        match in1 with
        |Up(l,n,r) ->  insert_upward_two n l r (k1,v1) right
        |Done d -> Done(Two(d, (k1,v1), right)))
@@ -494,12 +498,14 @@ struct
   and insert_downward_three ((k,v): pair) ((k1,v1): pair) ((k2,v2): pair) 
       (left: dict) (middle: dict) (right: dict) : kicked =
        match D.compare k k1 with
-     |Less|Eq -> (let in1 = insert_downward left k v in 
+       |Eq-> Done(Three(left, (k,v),middle, (k2,v2), right))
+     |Less -> (let in1 = insert_downward left k v in 
 		 match in1 with 
 		 |Up(l,n,r) -> insert_upward_three n l r (k1,v1) (k2,v2) middle right
 		 |Done d-> Done(Three(d, (k1,v1), middle, (k2,v2), right)))
      |Greater -> ( match D.compare k k2 with 
-       |Less|Eq -> ( let in2 = insert_downward middle k v in
+       |Eq -> Done(Three(left,(k1,v1), middle, (k,v), right))
+       |Less-> ( let in2 = insert_downward middle k v in
                  match in2 with
 		 |Up(l,n,r)-> insert_upward_three n l r (k1,v1) (k2,v2) left right
 		 |Done d -> Done(Three(left, (k1,v1), d , (k2,v2), right)))
