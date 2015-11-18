@@ -676,7 +676,7 @@ struct
 	| Less -> lookup d1 k
 	| Greater ->
 	   (match D.compare k k2 with
-	    | Eq -> Some v1
+	    | Eq -> Some v2
 	    | Less -> lookup d2 k
 	    | Greater -> lookup d3 k))
 
@@ -692,18 +692,21 @@ struct
    * dictionary (your choice on which one to remove), and returns
    * as an option this (key,value) pair along with the new dictionary. 
    * If our dictionary is empty, this should return None. *)
-  let rec choose (d: dict) : (key * value * dict) option =
-    match d with
-    | Leaf -> None
-    | Two(d1, (k, v), d2) ->
-       (match d2 with
-	| Leaf -> Some (k, v, remove d k)
-	| Two _ | Three _ -> choose d2)
-    | Three(d1, (k1, v1), d2, (k2, v2), d3) ->
-       (match d3 with
-	| Leaf -> Some (k2, v2, remove d k2) 
-	| Two _ | Three _ -> choose d3)
-
+  let choose (d: dict) : (key * value * dict) option =
+    let rec helper (currD: dict)=
+      match currD with
+      | Leaf -> None
+      | Two(d1, (k, v), d2) ->
+	 (match d2 with
+	  | Leaf -> Some (k, v, remove d k)
+	  | Two _ | Three _ -> helper d2)
+      | Three(d1, (k1, v1), d2, (k2, v2), d3) ->
+	 (match d3 with
+	  | Leaf -> Some (k2, v2, remove d k2) 
+	  | Two _ | Three _ -> helper d3)
+    in
+    helper d
+	   
   (* TODO:
    * Write a function that when given a 2-3 tree (represented by our
    * dictionary d), returns true if and only if the tree is "balanced", 
@@ -870,23 +873,17 @@ struct
   let test_remove_reverse_order () =
     let pairs1 = generate_pair_list 5 in
     let d1 = insert_list_reversed empty pairs1 in
-    List.iter (fun k -> Printf.printf "%s" (string_of_key (fst k))) pairs1;
-    Printf.printf "%s" (string_of_tree d1);
     List.iter 
       (fun (k,v) -> 
         let r = remove d1 k in
         let _ = List.iter 
           (fun (k2,v2) ->
             if k = k2 then assert(lookup r k2 = None)
-            else ( Printf.printf "%s" (string_of_tree r);
-		   Printf.printf "%s" (string_of_key k);
-		   Printf.printf "%s" (string_of_key k2);
-	      assert((lookup r k2) = Some v2))
+            else assert((lookup r k2) = Some v2)
           ) pairs1 in
         assert(balanced r)
       ) pairs1 ;
     ()
-(*lookup r k2 = Some v2*)
 
   let test_remove_random_order () =
     let pairs5 = generate_random_list 100 in
@@ -925,27 +922,29 @@ struct
     assert(choose (insert empty k v) = Some(k, v, empty));
 
     (*note reverse order for not BT dicts...*)
+
     let (k, v) = D.gen_pair () in
     let (k_gt, v') =  ((D.gen_key_gt k ()), D.gen_value ()) in
     let d = insert (insert empty k v) k_gt v' in
-    assert (choose d = Some(k, v, insert empty k_gt v'));
+    assert (choose d = Some(k_gt, v', insert empty k v));
 
     let (k, v) = D.gen_pair () in
     let (k_gt, v') =  ((D.gen_key_gt k ()), D.gen_value ()) in
     let (k_lt, v'') =  ((D.gen_key_lt k ()), D.gen_value ()) in
     let d = insert (insert (insert empty k v) k_gt v') k_lt v'' in 
-    (assert(choose d = Some(k_lt, v'', insert (insert empty k v) k_gt v'))); 
-     (assert((match choose d with
-	      | Some(_, _, d1) -> choose d1
-	      | None -> raise TODO (*change this ...?*))
-	     = Some(k, v, insert empty k_gt v')));
-     (assert((match choose d with
-	      | Some(_, _, d1) ->
-		 (match choose d1 with
-		  | Some(_, _, d2) -> choose d2
-		 | None -> raise TODO (*change this..?*))
-	      | None -> raise TODO (*change this ...?*))
-	     = Some(k_gt, v', empty)));
+    (match choose d with
+     | Some(k1, v1, d1) ->
+	(assert((k1, v1) = (k_gt, v'));
+	 (match choose d1 with
+	  | Some(k2, v2, d2) ->
+	     (assert ((k2, v2) = (k, v));
+	      (match choose d2 with
+	       | Some (k3, v3, d3) ->
+		  assert((k3, v3, d3) = (k_lt, v'', empty))
+	       | None -> assert(not true) (*fail*) ))
+	  | None  -> assert(not true) (*fail*) ))
+     | None -> assert(not true) (*fail*));
+    
     ()
 
   let run_tests () = 

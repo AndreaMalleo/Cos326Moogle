@@ -268,11 +268,11 @@ struct
     | Some(s1_hd, _,  s1'), Some(s2_hd, _, s2') ->
        (match C.compare s1_hd s2_hd with
 	| Eq -> D.insert (intersect s1' s2') s1_hd ()
-	| Less -> intersect s1' s2
-	| Greater -> intersect s1 s2')
+	| Less -> intersect s1 s2'
+	| Greater -> intersect s1' s2)
     
   let string_of_elt = D.string_of_key
-  let string_of_set s = D.string_of_dict s
+  let string_of_set s = D.string_of_dict s (*is this right??*)
 					 
   (****************************************************************)
   (* Tests for our DictSet functor                                *)
@@ -302,29 +302,30 @@ struct
     let elt = C.gen_random () in
     assert(choose (singleton elt) = Some(elt, empty));
 
-    (*note reverse order for not BT dicts...*)
+    (*note reverse order for not BT dicts*)
     
     let elt = C.gen_random() in
     let elt_gt = C.gen_gt elt () in
     let d = insert elt_gt (singleton elt) in
-    assert (choose d = Some(elt, singleton elt_gt));
+    assert (choose d = Some(elt_gt, singleton elt));
 
     let elt = C.gen_random() in
     let elt_gt = C.gen_gt elt () in
     let elt_lt = C.gen_lt elt () in
     let d = insert elt (insert elt_lt (singleton elt_gt)) in
-    (assert(choose d = Some(elt_lt, insert elt_gt (singleton elt)));
-     (assert((match choose d with
-	      | Some(_, d1) -> choose d1
-	      | None -> raise TODO (*change this ...?*))
-	     = Some(elt, singleton elt_gt)));
-     (assert((match choose d with
-	      | Some(_, d1) ->
-		 (match choose d1 with
-		  | Some(_, d2) -> choose d2
-		 | None -> raise TODO (*change this..?*))
-	      | None -> raise TODO (*change this ...?*))
-	     = Some(elt_gt, empty))));
+    (match choose d with
+     | Some(e1, d1) ->
+	(assert(e1 = elt_gt);
+	 (match choose d1 with
+	  | Some(e2, d2) ->
+	     (assert (e2 = elt);
+	      (match choose d2 with
+	       | Some (e3, d3) ->
+		  assert((e3, d3) = (elt_lt, empty))
+	       | None -> assert(not true) (*fail*) ))
+	  | None  -> assert(not true) (*fail*) ))
+     | None -> assert(not true) (*fail*));
+
     ()
 
   let test_fold () =
@@ -335,7 +336,7 @@ struct
     let d = insert elt (insert elt_lt (singleton elt_gt)) in
     (assert(fold print_func "" empty = "");
      assert(fold print_func "" d =
-	   (C.string_of_t elt_lt) ^ (C.string_of_t elt) ^ (C.string_of_t elt_gt)));
+	   (C.string_of_t elt_gt) ^ (C.string_of_t elt) ^ (C.string_of_t elt_lt)));
     ()
       
   let test_is_empty () =
@@ -366,6 +367,18 @@ struct
     );  ()
 
   let test_intersect () =
+    let elt = C.gen_random () in
+    let elt_gt = C.gen_gt elt () in
+    let elt_lt = C.gen_lt elt () in
+    let d = singleton elt in
+    let d_lt = insert elt_lt d in 
+    let d_gt = insert elt_gt d in
+    (Printf.printf "d %s\n" (string_of_set d);
+     Printf.printf "d_lt %s\n" (string_of_set d_lt);
+     Printf.printf "d_gt %s\n" (string_of_set d_gt);
+     Printf.printf "intersect %s\n" (string_of_set (intersect d_lt d_gt));
+      assert(intersect d_lt d_gt = d));
+
     let elts1 = generate_random_list 50 in
     let s1 = insert_list empty elts1 in
     let elts2 = generate_random_list 50 in
