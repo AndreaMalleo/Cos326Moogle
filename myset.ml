@@ -371,7 +371,8 @@ struct
     let elts2 = generate_random_list 50 in
     let s2 = insert_list empty elts2 in
     let s = intersect s1 s2 in
-    List.iter(fun k-> (assert(member s1 k && member s2 k = member s k))) (elts1@elts2)
+    List.iter(fun k->
+	      assert((member s1 k && member s2 k) = member s k)) (elts1@elts2)
       ; ()
     
   let test_member () =
@@ -386,7 +387,7 @@ struct
     let elt = C.gen_random () in
     let elt_lt = C.gen_lt elt () in
     let elt_gt = C.gen_gt elt () in
-    let d = insert elt (insert elt empty) in
+    let d = insert elt_lt (insert elt empty) in
     (assert(member d elt = true);
      assert(member d elt_lt = true);
      assert(member d elt_gt = false));

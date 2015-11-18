@@ -891,14 +891,59 @@ struct
     assert(r5 = empty) ;
     assert(balanced r5) ;
     () *)
+    
+  let test_lookup () =
+    assert(lookup empty (D.gen_key ()) = None);
 
+    let (k, v) = D.gen_pair () in
+    let (k_gt, v') =  ((D.gen_key_gt k ()), D.gen_value ()) in
+    let d = insert empty  k v in
+    (assert(lookup d k = Some v);
+     assert(lookup d k_gt = None));
 
-let run_tests () = 
-    test_insert_nothing();
-    test_insert_into_nothing();
-    test_balance(); ()
+    let pairs = generate_pair_list 5 in
+    let d = insert_list empty pairs in
+    List.iter (fun (k, v) -> assert(lookup d k = Some v)) pairs;
+    () (*kind of want a test one that is not in it..*)
 
-  (*  test_insert_in_order();
+  let test_choose () =
+    assert (choose empty = None);
+
+    let (k, v) = D.gen_pair () in
+    assert(choose (insert empty k v) = Some(k, v, empty));
+
+    (*note reverse order for not BT dicts...*)
+    let (k, v) = D.gen_pair () in
+    let (k_gt, v') =  ((D.gen_key_gt k ()), D.gen_value ()) in
+    let d = insert (insert empty k v) k_gt v' in
+    assert (choose d = Some(k, v, insert empty k_gt v'));
+
+    let (k, v) = D.gen_pair () in
+    let (k_gt, v') =  ((D.gen_key_gt k ()), D.gen_value ()) in
+    let (k_lt, v'') =  ((D.gen_key_lt k ()), D.gen_value ()) in
+    let d = insert (insert (insert empty k v) k_gt v') k_lt v'' in 
+    (assert(choose d = Some(k_lt, v'', insert (insert empty k v) k_gt v'))); 
+     (assert((match choose d with
+	      | Some(_, _, d1) -> choose d1
+	      | None -> raise TODO (*change this ...?*))
+	     = Some(k, v, insert empty k_gt v')));
+     (assert((match choose d with
+	      | Some(_, _, d1) ->
+		 (match choose d1 with
+		  | Some(_, _, d2) -> choose d2
+		 | None -> raise TODO (*change this..?*))
+	      | None -> raise TODO (*change this ...?*))
+	     = Some(k_gt, v', empty)));
+    ()
+    
+  let run_tests () = 
+    (*test_insert_nothing();
+      test_insert_into_nothing();*)
+    test_balance();
+    test_lookup();
+    test_choose ();
+			
+(*  test_insert_in_order();
     test_insert_reverse_order();
     test_insert_random_order();
     test_remove_nothing() ;
@@ -937,6 +982,6 @@ module Make (D:DICT_ARG) : (DICT with type key = D.key
   with type value = D.value) = 
   (* Change this line to the BTDict implementation when you are
    * done implementing your 2-3 trees. *)
-(*AssocListDict(D)*)
-  BTDict(D) 
+  (*AssocListDict(D)*)
+  BTDict(D)
 
