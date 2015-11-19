@@ -133,16 +133,62 @@ module RandomWalkRanker (GA: GRAPH) (NSA: NODE_SCORE with module N = GA.N)
   (P : WALK_PARAMS) : 
   (RANKER with module G = GA with module NS = NSA) =
 
-struct
-  module G = GA
-  module NS = NSA
+  struct
+    open Random
+    module G = GA
+    module NS = NSA
 
-  let length (l: 'a list): int =
-    
-  let get_random_elt (l: 'a list): 'a =
-    
-  let rank (g : G.graph) =
-    
+    exception ShouldNotReach
+    exception NoOutEdges
+		
+    let length (l: 'a list): int =
+      List.fold_left (fun acc n -> acc + 1) 0 l
+      
+    let get_random_elt (l: 'a list): 'a option = 
+      let rec get_elt (i: int) (currList: 'a list): 'a option =
+	match currList with
+	| [] -> raise ShouldNotReach
+	| hd::tl -> if i = 0 then Some(hd)
+		    else get_elt (i-1) tl
+      in
+      (match l with
+      | [] -> None
+      | xs -> let len = length l in
+      	      let rand = Random.int len in
+	      get_elt rand l)
+      
+
+    let get_random_neighbor (g: G.graph)(n: G.node) =
+      match G.neighbors g n with
+	| None ->
+	   (match G.get_random_node g with
+	   | None -> raise ShouldNotReach
+	   | Some(n') -> n)
+	| Some(ns) ->
+	   match get_random_elt ns with
+	   | None -> raise ShouldNotReach
+	   | Some(n') -> n'
+				    
+    let rec randomWalk (k: int)(n: G.node)
+		       (score_map: NS.node_score_map)(g: G.graph) =
+      if k = 0 then NS.normalize score_map 
+      else
+	let score_map' = NS.add_score score_map n 1.0 in
+	match P.do_random_jumps with
+	| None ->  randomWalk (k-1) (get_random_neighbor g n) score_map' g
+	| Some (a) ->
+	   if (Random.float 1.0) < a then
+	     (match G.get_random_node g with
+	      | None -> raise ShouldNotReach
+	      | Some(n') -> randomWalk (k-1) n' score_map' g)
+	   else
+	     randomWalk (k-1) (get_random_neighbor g n) score_map' g
+				    
+    let rank (g : G.graph) =
+      match G.get_random_node g  with
+      | None -> NS.zero_node_score_map (G.nodes g)
+      | Some(n) -> randomWalk P.num_steps n (NS.zero_node_score_map (G.nodes g)) g
+      
 end
 
 
